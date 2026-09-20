@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Неудобные вопросы</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --accent-color: #bb86fc;
+            --secondary-text: #a0a0a0;
+            --input-bg: #2c2c2c;
+            --border-radius: 12px;
+            --success-color: #03dac6;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: var(--accent-color);
+        }
+
+        .question-counter {
+            font-size: 0.9rem;
+            color: var(--secondary-text);
+            margin-bottom: 10px;
+        }
+
+        .question-text {
+            font-size: 1.2rem;
+            margin-bottom: 25px;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            background-color: var(--input-bg);
+            border: 1px solid #444;
+            border-radius: var(--border-radius);
+            color: var(--text-color);
+            padding: 15px;
+            font-size: 1rem;
+            resize: none;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        textarea:focus {
+            border-color: var(--accent-color);
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-skip {
+            background-color: #333;
+            color: var(--secondary-text);
+        }
+
+        .btn-answer {
+            background-color: var(--accent-color);
+            color: #121212;
+        }
+
+        .btn-finish, .btn-restart {
+            background-color: var(--success-color);
+            color: #121212;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Стили для истории */
+        .history-section {
+            margin-top: 40px;
+            text-align: left;
+            border-top: 1px solid #333;
+            padding-top: 20px;
+        }
+
+        .history-title {
+            font-size: 1rem;
+            color: var(--secondary-text);
+            margin-bottom: 15px;
+        }
+
+        .history-item {
+            background-color: #252525;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .history-date {
+            font-size: 0.8rem;
+            color: var(--accent-color);
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .history-preview {
+            font-size: 0.9rem;
+            color: var(--text-color);
+            white-space: pre-wrap;
+            max-height: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            opacity: 0.8;
+        }
+
+        .btn-copy-history {
+            background-color: #333;
+            color: var(--text-color);
+            padding: 8px 15px;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            width: auto;
+            display: inline-block;
+        }
+        
+        .status-message {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: var(--success-color);
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        
+        .status-message.visible {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Неудобные вопросы</h1>
+    
+    <!-- Секция вопросов -->
+    <div id="quiz-section">
+        <div class="question-counter" id="counter">Вопрос 1 из 21</div>
+        <div class="question-text" id="question">Загрузка...</div>
+        <textarea id="answer-input" placeholder="Ваш ответ..."></textarea>
+        
+        <div class="buttons">
+            <button class="btn-skip" onclick="skipQuestion()">Пропустить</button>
+            <button class="btn-answer" onclick="saveAnswer()">Ответить</button>
+        </div>
+    </div>
+
+    <!-- Секция завершения -->
+    <div id="finish-section" class="hidden">
+        <p style="margin-bottom: 20px; font-size: 1.1rem;">Вы ответили на все вопросы!</p>
+        <button id="action-btn" class="btn-finish" onclick="finishSession()">Завершить и скопировать</button>
+        <div id="status-msg" class="status-message">Текст скопирован в буфер обмена!</div>
+    </div>
+
+    <!-- Секция истории -->
+    <div id="history-section" class="history-section hidden">
+        <div class="history-title">История ответов:</div>
+        <div id="history-list"></div>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        "Как ты сегодня провел свободное время?",
+        "Что сегодня тебя порадовало больше всего?",
+        "Что тебя сегодня больше всего огорчило?",
+        "Что сегодня тебя заставило улыбнуться?",
+        "За что ты можешь себя похвалить?",
+        "На что ты обратил внимание, когда проснулся?",
+        "За что ты можешь себя поругать?",
+        "В каком поступке сегодня ты сомневаешься?",
+        "Что бы ты сделал иначе, если бы прожил этот день заново?",
+        "Что тебе не хватило, чтобы этот день был идеальным?",
+        "Какие 3 эмоции ты испытывал сегодня?",
+        "Опиши день 3 прилагательными.",
+        "Что ты сделал сегодня чисто для себя?",
+        "Что сделали тебе полезного или приятного?",
+        "Что о тебе думали окружающие?",
+        "Какой ты можешь сделать комплимент сегодня?",
+        "Если бы тебе дали 100к на день, как бы ты их потратил?",
+        "Какие планы у тебя на завтра?",
+        "Что ты ждешь больше всего завтра?",
+        "Какие выводы ты сделал из этого дня?",
+        "Что ты можешь пожелать себе на завтра?"
+    ];
+
+    let currentQuestionIndex = 0;
+    let answers = [];
+    let isSessionFinished = false;
+
+    // Элементы DOM
+    const counterEl = document.getElementById('counter');
+    const questionEl = document.getElementById('question');
+    const inputEl = document.getElementById('answer-input');
+    const quizSection = document.getElementById('quiz-section');
+    const finishSection = document.getElementById('finish-section');
+    const actionBtn = document.getElementById('action-btn');
+    const statusMsg = document.getElementById('status-msg');
+    const historySection = document.getElementById('history-section');
+    const historyList = document.getElementById('history-list');
+
+    window.onload = function() {
+        loadProgress();
+        renderHistory();
+        if (!isSessionFinished) {
+            renderQuestion();
+        } else {
+            showFinishScreen(true); // true означает, что сессия уже завершена ранее
+        }
+    };
+
+    function renderQuestion() {
+        if (currentQuestionIndex >= questions.length) {
+            showFinishScreen(false);
+            return;
+        }
+
+        counterEl.textContent = `Вопрос ${currentQuestionIndex + 1} из ${questions.length}`;
+        questionEl.textContent = questions[currentQuestionIndex];
+        inputEl.value = "";
+        inputEl.focus();
+    }
+
+    function saveAnswer() {
+        const answerText = inputEl.value.trim();
+        recordAnswer(answerText);
+        nextStep();
+    }
+
+    function skipQuestion() {
+        recordAnswer("пропущено");
+        nextStep();
+    }
+
+    function recordAnswer(text) {
+        answers.push({
+            question: questions[currentQuestionIndex],
+            answer: text
+        });
+        saveProgress();
+    }
+
+    function nextStep() {
+        currentQuestionIndex++;
+        renderQuestion();
+    }
+
+    function showFinishScreen(alreadyFinished) {
+        isSessionFinished = true;
+        quizSection.classList.add('hidden');
+        finishSection.classList.remove('hidden');
+        historySection.classList.remove('hidden');
+        
+        if (alreadyFinished) {
+            actionBtn.textContent = "Начать заново";
+            actionBtn.className = "btn-restart";
+            actionBtn.onclick = restartApp;
+            statusMsg.classList.remove('visible');
+        } else {
+            // Первый раз нажали завершить
+            saveProgress(); // Сохраняем флаг завершения
+            finishAndCopy();
+        }
+    }
+
+    function finishAndCopy() {
+        const resultText = generateFormattedText();
+        
+        // Сохраняем в историю
+        addToHistory(resultText);
+        
+        // Копируем в буфер
+        navigator.clipboard.writeText(resultText).then(() => {
+            statusMsg.textContent = "Текст скопирован в буфер обмена!";
+            statusMsg.classList.add('visible');
+            
+            // Меняем кнопку на "Начать заново"
+            setTimeout(() => {
+                actionBtn.textContent = "Начать заново";
+                actionBtn.className = "btn-restart";
+                actionBtn.onclick = restartApp;
+            }, 1000);
+        }).catch(err => {
+            console.error('Ошибка копирования: ', err);
+            alert('Не удалось скопировать текст автоматически.');
+        });
+    }
+
+    function restartApp() {
+        localStorage.removeItem('uncomfortable_questions_progress');
+        location.reload();
+    }
+
+    function generateFormattedText() {
+        const now = new Date();
+        const days = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
+        const dayName = days[now.getDay()];
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = String(now.getFullYear()).slice(-2);
+        
+        let finalText = `${dayName}, ${day}.${month}.${year}\n\n`;
+        
+        answers.forEach((item, index) => {
+            finalText += `${index + 1}. ${item.question}\n`;
+            finalText += `- ${item.answer}\n\n`;
+        });
+        
+        return finalText;
+    }
+
+    // Работа с историей
+    function addToHistory(text) {
+        let history = JSON.parse(localStorage.getItem('uncomfortable_questions_history') || '[]');
+        const now = new Date();
+        const dateStr = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getFullYear()).slice(-2)}`;
+        
+        history.unshift({
+            date: dateStr,
+            fullText: text,
+            timestamp: now.getTime()
+        });
+        
+        // Храним только последние 10 записей
+        if (history.length > 10) history = history.slice(0, 10);
+        
+        localStorage.setItem('uncomfortable_questions_history', JSON.stringify(history));
+        renderHistory();
+    }
+
+    function renderHistory() {
+        const history = JSON.parse(localStorage.getItem('uncomfortable_questions_history') || '[]');
+        if (history.length === 0) {
+            historySection.classList.add('hidden');
+            return;
+        }
+        
+        historySection.classList.remove('hidden');
+        historyList.innerHTML = '';
+        
+        history.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            
+            // Показываем первые 100 символов как превью
+            const preview = item.fullText.substring(0, 100) + (item.fullText.length > 100 ? '...' : '');
+            
+            div.innerHTML = `
+                <div class="history-date">${item.date}</div>
+                <div class="history-preview">${preview.replace(/\n/g, '<br>')}</div>
+                <button class="btn-copy-history" onclick="copyHistoryItem(${index})">Скопировать</button>
+            `;
+            historyList.appendChild(div);
+        });
+    }
+
+    function copyHistoryItem(index) {
+        const history = JSON.parse(localStorage.getItem('uncomfortable_questions_history') || '[]');
+        if (history[index]) {
+            navigator.clipboard.writeText(history[index].fullText).then(() => {
+                alert('Старая запись скопирована!');
+            });
+        }
+    }
+
+    // Сохранение прогресса текущей сессии
+    function saveProgress() {
+        const progress = {
+            index: currentQuestionIndex,
+            answers: answers,
+            finished: isSessionFinished
+        };
+        localStorage.setItem('uncomfortable_questions_progress', JSON.stringify(progress));
+    }
+
+    function loadProgress() {
+        const saved = localStorage.getItem('uncomfortable_questions_progress');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            currentQuestionIndex = parsed.index;
+            answers = parsed.answers;
+            isSessionFinished = parsed.finished || false;
+        }
+    }
+</script>
+
+</body>
+</html>
