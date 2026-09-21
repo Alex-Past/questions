@@ -120,6 +120,52 @@
             display: none;
         }
 
+        /* Стили для выбора даты */
+        .date-selection {
+            margin-bottom: 30px;
+        }
+
+        .date-selection p {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            color: var(--text-color);
+        }
+
+        .date-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn-date {
+            flex: 1;
+            padding: 15px;
+            background-color: var(--input-bg);
+            border: 2px solid #444;
+            border-radius: var(--border-radius);
+            color: var(--text-color);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-date:hover {
+            border-color: var(--accent-color);
+        }
+
+        .btn-date.selected {
+            background-color: var(--accent-color);
+            color: #121212;
+            border-color: var(--accent-color);
+        }
+
+        .btn-continue {
+            background-color: var(--success-color);
+            color: #121212;
+            width: 100%;
+            margin-top: 20px;
+            padding: 15px;
+        }
+
         /* Стили для истории */
         .history-section {
             margin-top: 40px;
@@ -187,9 +233,21 @@
 <div class="container">
     <h1>Неудобные вопросы</h1>
     
+    <!-- Секция выбора даты -->
+    <div id="date-section">
+        <div class="date-selection">
+            <p>За какой день заполняем дневник?</p>
+            <div class="date-buttons">
+                <button class="btn-date" id="btn-today" onclick="selectDate('today')">Сегодня</button>
+                <button class="btn-date" id="btn-yesterday" onclick="selectDate('yesterday')">Вчера</button>
+            </div>
+            <button class="btn-continue hidden" id="btn-continue" onclick="continueToQuestions()">Продолжить</button>
+        </div>
+    </div>
+
     <!-- Секция вопросов -->
-    <div id="quiz-section">
-        <div class="question-counter" id="counter">Вопрос 1 из 21</div>
+    <div id="quiz-section" class="hidden">
+        <div class="question-counter" id="counter">Вопрос 1 из 19</div>
         <div class="question-text" id="question">Загрузка...</div>
         <textarea id="answer-input" placeholder="Ваш ответ..."></textarea>
         
@@ -215,34 +273,37 @@
 
 <script>
     const questions = [
+        "Опиши коротко погоду сегодня.",
         "Как ты сегодня провел свободное время?",
+        "Что ты узнал нового сегодня?",
+        "В какой момент ты почувствовал себя «в потоке»?",
+        "Какие 3 эмоции ты испытывал сегодня и почему?",
         "Что сегодня тебя порадовало больше всего?",
         "Что тебя сегодня больше всего огорчило?",
         "Что сегодня тебя заставило улыбнуться?",
         "За что ты можешь себя похвалить?",
-        "На что ты обратил внимание, когда проснулся?",
         "За что ты можешь себя поругать?",
+        "Какая мысль не давала тебе покоя сегодня?",
         "В каком поступке сегодня ты сомневаешься?",
         "Что бы ты сделал иначе, если бы прожил этот день заново?",
-        "Что тебе не хватило, чтобы этот день был идеальным?",
-        "Какие 3 эмоции ты испытывал сегодня?",
-        "Опиши день 3 прилагательными.",
-        "Что ты сделал сегодня чисто для себя?",
-        "Что сделали тебе полезного или приятного?",
-        "Что о тебе думали окружающие?",
-        "Какой ты можешь сделать себе комплимент сегодня?",
+        "Был ли момент, когда ты хотел сказать «нет», но сказал «да»?",
+        "Что ты откладывал сегодня и почему?",
+        "Кому ты сегодня благодарен и за что?",
         "Если бы тебе дали 100к на день, как бы ты их потратил?",
-        "Какие планы у тебя на завтра?",
         "Что ты ждешь больше всего завтра?",
-        "Какие выводы ты сделал из этого дня?",
         "Что ты можешь пожелать себе на завтра?"
     ];
 
     let currentQuestionIndex = 0;
     let answers = [];
     let isSessionFinished = false;
+    let selectedDate = null; // 'today' или 'yesterday'
 
     // Элементы DOM
+    const dateSection = document.getElementById('date-section');
+    const btnToday = document.getElementById('btn-today');
+    const btnYesterday = document.getElementById('btn-yesterday');
+    const btnContinue = document.getElementById('btn-continue');
     const counterEl = document.getElementById('counter');
     const questionEl = document.getElementById('question');
     const inputEl = document.getElementById('answer-input');
@@ -256,12 +317,43 @@
     window.onload = function() {
         loadProgress();
         renderHistory();
-        if (!isSessionFinished) {
+        
+        if (isSessionFinished) {
+            showFinishScreen(true);
+        } else if (currentQuestionIndex > 0) {
+            // Если есть прогресс, пропускаем выбор даты
+            dateSection.classList.add('hidden');
+            quizSection.classList.remove('hidden');
             renderQuestion();
         } else {
-            showFinishScreen(true); // true означает, что сессия уже завершена ранее
+            // Показываем выбор даты
+            dateSection.classList.remove('hidden');
         }
     };
+
+    function selectDate(dateType) {
+        selectedDate = dateType;
+        
+        // Визуально выделяем выбранную кнопку
+        btnToday.classList.remove('selected');
+        btnYesterday.classList.remove('selected');
+        
+        if (dateType === 'today') {
+            btnToday.classList.add('selected');
+        } else {
+            btnYesterday.classList.add('selected');
+        }
+        
+        // Показываем кнопку "Продолжить"
+        btnContinue.classList.remove('hidden');
+    }
+
+    function continueToQuestions() {
+        dateSection.classList.add('hidden');
+        quizSection.classList.remove('hidden');
+        saveProgress();
+        renderQuestion();
+    }
 
     function renderQuestion() {
         if (currentQuestionIndex >= questions.length) {
@@ -311,8 +403,7 @@
             actionBtn.onclick = restartApp;
             statusMsg.classList.remove('visible');
         } else {
-            // Первый раз нажали завершить
-            saveProgress(); // Сохраняем флаг завершения
+            saveProgress();
             finishAndCopy();
         }
     }
@@ -320,15 +411,12 @@
     function finishAndCopy() {
         const resultText = generateFormattedText();
         
-        // Сохраняем в историю
         addToHistory(resultText);
         
-        // Копируем в буфер
         navigator.clipboard.writeText(resultText).then(() => {
             statusMsg.textContent = "Текст скопирован в буфер обмена!";
             statusMsg.classList.add('visible');
             
-            // Меняем кнопку на "Начать заново"
             setTimeout(() => {
                 actionBtn.textContent = "Начать заново";
                 actionBtn.className = "btn-restart";
@@ -346,18 +434,24 @@
     }
 
     function generateFormattedText() {
-        const now = new Date();
+        // Определяем дату на основе выбора пользователя
+        const date = new Date();
+        if (selectedDate === 'yesterday') {
+            date.setDate(date.getDate() - 1);
+        }
+        
         const days = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
-        const dayName = days[now.getDay()];
-        const day = String(now.getDate()).padStart(2, '0');
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const year = String(now.getFullYear()).slice(-2);
+        const dayName = days[date.getDay()];
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = String(date.getFullYear()).slice(-2);
         
         let finalText = `${dayName}, ${day}.${month}.${year}\n\n`;
         
         answers.forEach((item, index) => {
             finalText += `${index + 1}. ${item.question}\n`;
-            finalText += `- ${item.answer}\n\n`;
+            // Ответ курсивом через звездочки (Markdown формат)
+            finalText += `*${item.answer}*\n\n`;
         });
         
         return finalText;
@@ -366,16 +460,20 @@
     // Работа с историей
     function addToHistory(text) {
         let history = JSON.parse(localStorage.getItem('uncomfortable_questions_history') || '[]');
-        const now = new Date();
-        const dateStr = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getFullYear()).slice(-2)}`;
+        
+        const date = new Date();
+        if (selectedDate === 'yesterday') {
+            date.setDate(date.getDate() - 1);
+        }
+        
+        const dateStr = `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getFullYear()).slice(-2)}`;
         
         history.unshift({
             date: dateStr,
             fullText: text,
-            timestamp: now.getTime()
+            timestamp: date.getTime()
         });
         
-        // Храним только последние 10 записей
         if (history.length > 10) history = history.slice(0, 10);
         
         localStorage.setItem('uncomfortable_questions_history', JSON.stringify(history));
@@ -396,12 +494,11 @@
             const div = document.createElement('div');
             div.className = 'history-item';
             
-            // Показываем первые 100 символов как превью
             const preview = item.fullText.substring(0, 100) + (item.fullText.length > 100 ? '...' : '');
             
             div.innerHTML = `
                 <div class="history-date">${item.date}</div>
-                <div class="history-preview">${preview.replace(/\n/g, '<br>')}</div>
+                <div class="history-preview">${preview.replace(/\n/g, '<br>').replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>
                 <button class="btn-copy-history" onclick="copyHistoryItem(${index})">Скопировать</button>
             `;
             historyList.appendChild(div);
@@ -417,12 +514,12 @@
         }
     }
 
-    // Сохранение прогресса текущей сессии
     function saveProgress() {
         const progress = {
             index: currentQuestionIndex,
             answers: answers,
-            finished: isSessionFinished
+            finished: isSessionFinished,
+            selectedDate: selectedDate
         };
         localStorage.setItem('uncomfortable_questions_progress', JSON.stringify(progress));
     }
@@ -434,6 +531,7 @@
             currentQuestionIndex = parsed.index;
             answers = parsed.answers;
             isSessionFinished = parsed.finished || false;
+            selectedDate = parsed.selectedDate;
         }
     }
 </script>
