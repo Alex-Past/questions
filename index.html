@@ -260,7 +260,7 @@
     <!-- Секция завершения -->
     <div id="finish-section" class="hidden">
         <p style="margin-bottom: 20px; font-size: 1.1rem;">Вы ответили на все вопросы!</p>
-        <button id="action-btn" class="btn-finish" onclick="finishSession()">Завершить и скопировать</button>
+        <button id="action-btn" class="btn-finish" onclick="finishAndCopy()">Завершить и скопировать</button>
         <div id="status-msg" class="status-message">Текст скопирован в буфер обмена!</div>
     </div>
 
@@ -297,9 +297,8 @@
     let currentQuestionIndex = 0;
     let answers = [];
     let isSessionFinished = false;
-    let selectedDate = null; // 'today' или 'yesterday'
+    let selectedDate = null;
 
-    // Элементы DOM
     const dateSection = document.getElementById('date-section');
     const btnToday = document.getElementById('btn-today');
     const btnYesterday = document.getElementById('btn-yesterday');
@@ -321,12 +320,10 @@
         if (isSessionFinished) {
             showFinishScreen(true);
         } else if (currentQuestionIndex > 0) {
-            // Если есть прогресс, пропускаем выбор даты
             dateSection.classList.add('hidden');
             quizSection.classList.remove('hidden');
             renderQuestion();
         } else {
-            // Показываем выбор даты
             dateSection.classList.remove('hidden');
         }
     };
@@ -334,7 +331,6 @@
     function selectDate(dateType) {
         selectedDate = dateType;
         
-        // Визуально выделяем выбранную кнопку
         btnToday.classList.remove('selected');
         btnYesterday.classList.remove('selected');
         
@@ -344,7 +340,6 @@
             btnYesterday.classList.add('selected');
         }
         
-        // Показываем кнопку "Продолжить"
         btnContinue.classList.remove('hidden');
     }
 
@@ -404,7 +399,7 @@
             statusMsg.classList.remove('visible');
         } else {
             saveProgress();
-            finishAndCopy();
+            // Не копируем автоматически, ждем нажатия кнопки
         }
     }
 
@@ -417,11 +412,10 @@
             statusMsg.textContent = "Текст скопирован в буфер обмена!";
             statusMsg.classList.add('visible');
             
-            setTimeout(() => {
-                actionBtn.textContent = "Начать заново";
-                actionBtn.className = "btn-restart";
-                actionBtn.onclick = restartApp;
-            }, 1000);
+            // Меняем кнопку на "Начать заново"
+            actionBtn.textContent = "Начать заново";
+            actionBtn.className = "btn-restart";
+            actionBtn.onclick = restartApp;
         }).catch(err => {
             console.error('Ошибка копирования: ', err);
             alert('Не удалось скопировать текст автоматически.');
@@ -434,7 +428,6 @@
     }
 
     function generateFormattedText() {
-        // Определяем дату на основе выбора пользователя
         const date = new Date();
         if (selectedDate === 'yesterday') {
             date.setDate(date.getDate() - 1);
@@ -450,14 +443,13 @@
         
         answers.forEach((item, index) => {
             finalText += `${index + 1}. ${item.question}\n`;
-            // Ответ курсивом через звездочки (Markdown формат)
-            finalText += `*${item.answer}*\n\n`;
+            // Убрали звездочки для курсива
+            finalText += `${item.answer}\n\n`;
         });
         
         return finalText;
     }
 
-    // Работа с историей
     function addToHistory(text) {
         let history = JSON.parse(localStorage.getItem('uncomfortable_questions_history') || '[]');
         
@@ -498,7 +490,7 @@
             
             div.innerHTML = `
                 <div class="history-date">${item.date}</div>
-                <div class="history-preview">${preview.replace(/\n/g, '<br>').replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>
+                <div class="history-preview">${preview.replace(/\n/g, '<br>')}</div>
                 <button class="btn-copy-history" onclick="copyHistoryItem(${index})">Скопировать</button>
             `;
             historyList.appendChild(div);
@@ -509,7 +501,15 @@
         const history = JSON.parse(localStorage.getItem('uncomfortable_questions_history') || '[]');
         if (history[index]) {
             navigator.clipboard.writeText(history[index].fullText).then(() => {
-                alert('Старая запись скопирована!');
+                // Показываем статус вместо alert
+                statusMsg.textContent = "Текст скопирован в буфер обмена!";
+                statusMsg.classList.add('visible');
+                
+                setTimeout(() => {
+                    statusMsg.classList.remove('visible');
+                }, 2000);
+            }).catch(err => {
+                console.error('Ошибка копирования: ', err);
             });
         }
     }
